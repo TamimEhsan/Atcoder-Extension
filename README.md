@@ -9,10 +9,12 @@ Atcoder lacks some useful features like solve count and status in the contest ta
 
 - Show solve count of problems
 - Show AC and WA status of problems
+- Uses cache to speed up loading
 
 ## Features for future
 
 - Add other judge status too, but ig that are not necessary
+- Add problem navigation
 
 
 ## How to add extension
@@ -29,7 +31,7 @@ Atcoder lacks some useful features like solve count and status in the contest ta
 
 
 ## Problems
-The load time is a bit slow
+The load time is a bit slow for new contests
 
 
 ## Conclusion

@@ -12,111 +12,134 @@ function extractContestNameFromLink(link) {
   }
 
 // Adding listener to window when the initial loading is done
+
+/*
+problem = {
+    "TaskScreenName": "a",
+    "TaskName": "a",
+    "Assignment": "a",
+    "Status": "AC","WA", 
+    "SolveCount": 1
+}
+*/
+
+function updateTable(problems) {
+    let table = document.querySelector("table");
+    if( table.rows.length == 0 ) return;
+    if( table.rows[0].cells.length == 5 ) {
+        for(let i=0;i<table.rows.length;i++){
+            let row = table.rows[i];
+            row.insertCell();
+        }
+    }
+    let tableHeader = table.rows[0];
+
+    tableHeader.cells[5].innerHTML = "Solve ";
+    tableHeader.cells[5].classList.add("text-center");
+    tableHeader.cells[5].classList.add("no-break");
+    tableHeader.cells[5].style.width = "10%";
+
+    for(let i=1;i<table.rows.length;i++){
+        let row = table.rows[i];
+        row.cells[5].innerHTML = "<img src='https://codeforces.org/s/96502/images/icons/user.png'> "+problems[i-1].SolveCount;
+        row.cells[5].classList.add("text-center");
+        row.cells[5].classList.add("no-break");
+
+        if(problems[i-1].Status == "AC"){
+            row.cells[2].style.backgroundColor = '#d4edc9';
+            row.cells[3].style.backgroundColor = '#d4edc9';
+            row.cells[4].style.backgroundColor = '#d4edc9';
+        }else if(problems[i-1].Status == "WA"){
+            row.cells[2].style.backgroundColor = '#ffe3e3';
+            row.cells[3].style.backgroundColor = '#ffe3e3';
+            row.cells[4].style.backgroundColor = '#ffe3e3';
+        }
+    }
+}
+
+async function updateProblemStatus(problems,problemMapByName,contestName,status){
+    let mySubmissionsResponse = await this.fetch("https://atcoder.jp/contests/"+contestName+"/submissions/me?f.Task=&f.LanguageName=&f.Status="+status+"&f.User=");
+    let mySubmissions = await mySubmissionsResponse.text();
+    let mySubmissionsDoc = new DOMParser().parseFromString(mySubmissions,"text/html");
+    let mySubmissionsTable = mySubmissionsDoc.querySelector("table");
+    if( mySubmissionsTable === null ){
+        // console.log("No "+status+" submissions");
+        return problems;
+    }
+    for(let i=1;i<mySubmissionsTable.rows.length;i++){
+        let row = mySubmissionsTable.rows[i];
+        let problemName = row.cells[1].innerText;
+        let problemId = problemMapByName[problemName];
+        problems[problemId].Status = status;
+    }
+    return problems;
+   
+}
 window.addEventListener('load',async function (){
-    let counter = 0;
+    
+    // check login status
+    let loginButton = document.querySelector("ul.navbar-nav:nth-child(2) > li:nth-child(3) > a:nth-child(1)");
+    if( loginButton !== null ){
+        console.log("Not logged in");
+        return;
+    }
+
     // console.log("Initial loading done");
     // get the link of page
     let link = window.location.href;
     let contestName = extractContestNameFromLink(link);
+    let storedData = localStorage.getItem(contestName);
+    if(storedData !== null){
+        // console.log("Using cached data");
+        let data = JSON.parse(storedData);
+       // let currentTime = new Date().getTime();
+       // if( currentTime - data.time < 1000*60*60*24 ){
+            updateTable(data.problems);
+         //   return;
+       // }
+    }else{
+        // console.log("Cache fault");
+    }
+
     // http get another page
     let response = await fetch("https://atcoder.jp/contests/"+contestName+"/standings/json");
     let jsonData = await response.json();
     let problems = jsonData.TaskInfo;
     let users = jsonData.StandingsData;
 
-    let solveCount = [];
+   
     
-
-
-
-    // console.log(problems);
-    let problemMap = [];
     let problemMapByName = [];
 
     for(let i=0;i<problems.length;i++){
-        problemMap[problems[i].TaskScreenName] = i;
         problemMapByName[problems[i].Assignment+" - "+problems[i].TaskName] = i;
-
-        solveCount[i] = 0;
+        problems[i].SolveCount = 0;
     }
+
     for(let i=0;i<users.length;i++){
         let user = users[i];
         for(let j=0;j<problems.length;j++){
             let task = user.TaskResults[ problems[j].TaskScreenName ];
-            
             if( task === undefined || task.Score == 0) continue;
-            solveCount[j]++;
+            problems[j].SolveCount++;
         }
     }
-    // console.log(problemMap);
-    // console.log(solveCount);
 
-    let table = document.querySelector("table");
-    let row = table.rows[0];
-    let newCell1 = row.insertCell();
-    newCell1.innerHTML = "Solve ";
-    newCell1.classList.add("text-center");
-    newCell1.classList.add("no-break");
-    newCell1.style.width = "10%";
+    problems = await updateProblemStatus(problems,problemMapByName,contestName,"WA");
+    problems = await updateProblemStatus(problems,problemMapByName,contestName,"AC");
 
-    // let newCell2 = row.insertCell();
-    // newCell2.innerHTML = "<span style='color:green'> Status </span>";
-
-    for(let i=1;i<table.rows.length;i++){
-        let row = table.rows[i];
-        let newCell1 = row.insertCell();
-        newCell1.innerHTML = " <img src='https://codeforces.org/s/96502/images/icons/user.png'> "+solveCount[i-1];
-        newCell1.classList.add("text-center");
-        newCell1.classList.add("no-break");
-
-
-        // let newCell2 = row.insertCell();
-        
+    if( storedData !== null ){
+        let data = JSON.parse(storedData);
+        let problems2 = data.problems;
+        if( JSON.stringify(problems) === JSON.stringify(problems2) ){
+            // console.log("Same data");
+            return;
+        }
     }
+
     
-
-    let mySubmissionsResponse = await this.fetch("https://atcoder.jp/contests/"+contestName+"/submissions/me?f.Task=&f.LanguageName=&f.Status=WA&f.User=");
-    let mySubmissionsResponse2 = await this.fetch("https://atcoder.jp/contests/"+contestName+"/submissions/me?f.Task=&f.LanguageName=&f.Status=AC&f.User=");
-
-    let mySubmissions = await mySubmissionsResponse.text();
-    let mySubmissionsDoc = new DOMParser().parseFromString(mySubmissions,"text/html");
-    let mySubmissionsTable = mySubmissionsDoc.querySelector("table");
-    for(let i=1;i<mySubmissionsTable.rows.length;i++){
-        let row = mySubmissionsTable.rows[i];
-        let problemName = row.cells[1].innerText;
-        let status = row.cells[6].innerText;
-        
-        let problemId = problemMapByName[problemName]+1;
-       
-        // table.rows[problemId].cells[6].innerHTML = "<span class='label label-warning'> WA </span>";
-        table.rows[problemId].cells[2].style.backgroundColor = '#ffe3e3';
-        table.rows[problemId].cells[3].style.backgroundColor = '#ffe3e3';
-        table.rows[problemId].cells[4].style.backgroundColor = '#ffe3e3';
-
-    }
-     
-
-    mySubmissions = await mySubmissionsResponse2.text();
-    mySubmissionsDoc = new DOMParser().parseFromString(mySubmissions,"text/html");
-    mySubmissionsTable = mySubmissionsDoc.querySelector("table");
-    for(let i=1;i<mySubmissionsTable.rows.length;i++){
-        let row = mySubmissionsTable.rows[i];
-        let problemName = row.cells[1].innerText;
-        let status = row.cells[6].innerText;
-        
-       
-        let problemId = problemMapByName[problemName]+1;
-       
-        // table.rows[problemId].cells[6].innerHTML = "<span class='label label-success'> AC </span>";
-        table.rows[problemId].cells[2].style.backgroundColor = '#d4edc9';
-        table.rows[problemId].cells[3].style.backgroundColor = '#d4edc9';
-        table.rows[problemId].cells[4].style.backgroundColor = '#d4edc9';
-        
-
-       
-
-    }
-
-
+    localStorage.setItem(contestName,JSON.stringify({ problems:problems,time:new Date().getTime() }));
+    // console.log("Using fetched data");
+    updateTable(problems);
 })
 

@@ -1,19 +1,18 @@
 {
-  "name": "Atcoder extension",
+  "name": "Atcoder Task Extension",
   "version": "1.0",
   "icon": {
-    "128": "logo_128.png"
+    "128": "icons/logo_128.png"
   },
   "manifest_version": 2,
   "content_scripts": [
     {
       "matches": ["https://atcoder.jp/contests/*/tasks"],
-      "js": ["content.js","popup.js"]
+      "js": ["content.js"]
     }
   ],
   "browser_action": {
-    "default_icon": "logo.png",
-    "default_title":"Atcoder extension"
-  },
-  "permissions": ["tabs"]
+    "default_icon": "icons/logo.png",
+    "default_title":"Atcoder Task extension"
+  }
 }
